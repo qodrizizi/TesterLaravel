@@ -10,10 +10,14 @@ class Room extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'level', 'is_available'
+        'room_number', 'level_id', 'is_available'
     ];
 
-    // Relasi dengan model Patient (satu kamar bisa memiliki banyak pasien)
+    public function roomLevel()
+    {
+        return $this->belongsTo(RoomLevel::class, 'level_id');
+    }
+    
     public function patients()
     {
         return $this->hasMany(Patient::class);

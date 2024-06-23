@@ -11,8 +11,6 @@ class CreatePatientsTable extends Migration
         Schema::create('patients', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->date('admission_date');
-            $table->date('discharge_date')->nullable();
             $table->unsignedBigInteger('room_id')->nullable();
             $table->timestamps();
 

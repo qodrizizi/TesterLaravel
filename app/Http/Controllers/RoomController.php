@@ -1,47 +1,62 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Room;
 use Illuminate\Http\Request;
+use App\Models\Room;
+use App\Models\RoomLevel; 
 
 class RoomController extends Controller
 {
     public function index()
     {
         $rooms = Room::all();
-        return view('rooms.index', compact('rooms'));
-    }
-
-    public function create()
-    {
-        return view('rooms.create');
+        return response()->json($rooms);
     }
 
     public function store(Request $request)
     {
-        Room::create($request->all());
-        return redirect()->route('rooms.index');
+        $room = new Room();
+        $room->room_number = $request->room_number;
+        $room->level_id = $request->level_id;
+        $room->is_available = $request->is_available ?? true;
+
+        $room->save();
+
+        return response()->json(['message' => 'Room created successfully', 'room' => $room]);
     }
 
-    public function show(Room $room)
+    public function show($id)
     {
-        return view('rooms.show', compact('room'));
+        $room = Room::findOrFail($id);
+        return response()->json($room);
     }
 
-    public function edit(Room $room)
+    public function update(Request $request, $id)
     {
-        return view('rooms.edit', compact('room'));
+        $room = Room::findOrFail($id);
+        $room->room_number = $request->room_number;
+        $room->level_id = $request->level_id;
+        $room->is_available = $request->is_available ?? true;
+
+        $room->save();
+
+        return response()->json(['message' => 'Room updated successfully', 'room' => $room]);
     }
 
-    public function update(Request $request, Room $room)
+    public function destroy($id)
     {
-        $room->update($request->all());
-        return redirect()->route('rooms.index');
-    }
-
-    public function destroy(Room $room)
-    {
+        $room = Room::findOrFail($id);
         $room->delete();
-        return redirect()->route('rooms.index');
+
+        return response()->json(['message' => 'Room deleted successfully']);
+    }
+
+    public function updateAvailability($id)
+    {
+        $room = Room::findOrFail($id);
+        $room->is_available = !$room->is_available;
+        $room->save();
+
+        return response()->json(['message' => 'Room availability updated successfully', 'room' => $room]);
     }
 }

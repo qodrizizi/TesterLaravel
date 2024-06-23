@@ -1,68 +1,68 @@
 <?php
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Patient;
 use App\Models\Room;
-use Illuminate\Http\Request;
 
 class PatientController extends Controller
 {
     public function index()
     {
         $patients = Patient::all();
-        return view('patients.index', compact('patients'));
-    }
-
-    public function create()
-    {
-        $rooms = Room::where('is_available', true)->get();
-        return view('patients.create', compact('rooms'));
+        return response()->json($patients);
     }
 
     public function store(Request $request)
     {
-        $patient = Patient::create($request->all());
-        $room = Room::find($patient->room_id);
-        $room->is_available = false;
-        $room->save();
-        
-        return redirect()->route('patients.index');
-    }
+        // Validasi data yang diterima dari request
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'room_id' => 'required|exists:rooms,id',
+        ]);
 
-    public function show(Patient $patient)
-    {
-        return view('patients.show', compact('patient'));
-    }
+        // Buat objek pasien baru
+        $patient = new Patient();
+        $patient->name = $request->name;
+        $patient->admission_date = now(); // Tanggal masuk
+        $patient->room_id = $request->room_id;
 
-    public function edit(Patient $patient)
-    {
-        $rooms = Room::where('is_available', true)->orWhere('id', $patient->room_id)->get();
-        return view('patients.edit', compact('patient', 'rooms'));
-    }
-
-    public function update(Request $request, Patient $patient)
-    {
-        $oldRoom = $patient->room;
-        $patient->update($request->all());
-        $newRoom = Room::find($patient->room_id);
-
-        if ($oldRoom->id !== $newRoom->id) {
-            $oldRoom->is_available = true;
-            $oldRoom->save();
-            $newRoom->is_available = false;
-            $newRoom->save();
+        // Ubah status ketersediaan kamar
+        $room = Room::findOrFail($request->room_id);
+        if (!$room->is_available) {
+            return response()->json(['message' => 'Room is not available'], 400);
         }
 
-        return redirect()->route('patients.index');
-    }
-
-    public function destroy(Patient $patient)
-    {
-        $room = $patient->room;
-        $patient->delete();
-        $room->is_available = true;
+        $room->is_available = false; // Tandai kamar tidak tersedia
         $room->save();
 
-        return redirect()->route('patients.index');
+        // Simpan data pasien
+        $patient->save();
+
+        return response()->json(['message' => 'Patient admitted successfully', 'patient' => $patient]);
+    }
+
+    public function discharge($id)
+    {
+        // Cari pasien berdasarkan ID
+        $patient = Patient::findOrFail($id);
+
+        // Validasi apakah pasien sudah pulang sebelumnya
+        if (!is_null($patient->discharge_date)) {
+            return response()->json(['message' => 'Patient has already been discharged'], 400);
+        }
+
+        // Tandai tanggal keluar pasien
+        $patient->discharge_date = now();
+
+        // Ubah status ketersediaan kamar
+        $room = Room::findOrFail($patient->room_id);
+        $room->is_available = true; // Tandai kamar tersedia kembali
+        $room->save();
+
+        // Simpan data pasien
+        $patient->save();
+
+        return response()->json(['message' => 'Patient discharged successfully', 'patient' => $patient]);
     }
 }

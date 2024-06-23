@@ -13,7 +13,6 @@ class Patient extends Model
         'name', 'room_id'
     ];
 
-    // Relasi dengan model Room (satu pasien hanya bisa berada di satu kamar)
     public function room()
     {
         return $this->belongsTo(Room::class);
