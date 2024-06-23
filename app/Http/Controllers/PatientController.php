@@ -1,45 +1,68 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Patient;
 use App\Models\Room;
+use Illuminate\Http\Request;
 
 class PatientController extends Controller
 {
-    public function store(Request $request)
+    public function index()
     {
-        $patient = new Patient();
-        $patient->name = $request->name;
-        $patient->admission_date = now();
-        $patient->room_id = $request->room_id;
-
-        $room = Room::findOrFail($request->room_id);
-        if (!$room->is_available) {
-            return response()->json(['message' => 'Room is not available'], 400);
-        }
-
-        $room->is_available = false;
-        $room->save();
-
-        $patient->save();
-
-        return response()->json(['message' => 'Patient admitted successfully']);
+        $patients = Patient::all();
+        return view('patients.index', compact('patients'));
     }
 
-    public function discharge($id)
+    public function create()
     {
-        $patient = Patient::findOrFail($id);
-        $patient->discharge_date = now();
+        $rooms = Room::where('is_available', true)->get();
+        return view('patients.create', compact('rooms'));
+    }
 
-        $room = Room::findOrFail($patient->room_id);
+    public function store(Request $request)
+    {
+        $patient = Patient::create($request->all());
+        $room = Room::find($patient->room_id);
+        $room->is_available = false;
+        $room->save();
+        
+        return redirect()->route('patients.index');
+    }
+
+    public function show(Patient $patient)
+    {
+        return view('patients.show', compact('patient'));
+    }
+
+    public function edit(Patient $patient)
+    {
+        $rooms = Room::where('is_available', true)->orWhere('id', $patient->room_id)->get();
+        return view('patients.edit', compact('patient', 'rooms'));
+    }
+
+    public function update(Request $request, Patient $patient)
+    {
+        $oldRoom = $patient->room;
+        $patient->update($request->all());
+        $newRoom = Room::find($patient->room_id);
+
+        if ($oldRoom->id !== $newRoom->id) {
+            $oldRoom->is_available = true;
+            $oldRoom->save();
+            $newRoom->is_available = false;
+            $newRoom->save();
+        }
+
+        return redirect()->route('patients.index');
+    }
+
+    public function destroy(Patient $patient)
+    {
+        $room = $patient->room;
+        $patient->delete();
         $room->is_available = true;
         $room->save();
 
-        $patient->save();
-
-        return response()->json(['message' => 'Patient discharged successfully']);
+        return redirect()->route('patients.index');
     }
 }
-

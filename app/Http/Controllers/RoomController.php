@@ -1,23 +1,47 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Room;
+use Illuminate\Http\Request;
 
 class RoomController extends Controller
 {
     public function index()
     {
-        return Room::with('level')->get();
+        $rooms = Room::all();
+        return view('rooms.index', compact('rooms'));
     }
 
-    public function updateAvailability($id)
+    public function create()
     {
-        $room = Room::findOrFail($id);
-        $room->is_available = !$room->is_available;
-        $room->save();
+        return view('rooms.create');
+    }
 
-        return response()->json(['message' => 'Room availability updated successfully']);
+    public function store(Request $request)
+    {
+        Room::create($request->all());
+        return redirect()->route('rooms.index');
+    }
+
+    public function show(Room $room)
+    {
+        return view('rooms.show', compact('room'));
+    }
+
+    public function edit(Room $room)
+    {
+        return view('rooms.edit', compact('room'));
+    }
+
+    public function update(Request $request, Room $room)
+    {
+        $room->update($request->all());
+        return redirect()->route('rooms.index');
+    }
+
+    public function destroy(Room $room)
+    {
+        $room->delete();
+        return redirect()->route('rooms.index');
     }
 }
