@@ -24,7 +24,6 @@ class PatientController extends Controller
         // Buat objek pasien baru
         $patient = new Patient();
         $patient->name = $request->name;
-        $patient->admission_date = now(); // Tanggal masuk
         $patient->room_id = $request->room_id;
 
         // Ubah status ketersediaan kamar
@@ -41,28 +40,19 @@ class PatientController extends Controller
 
         return response()->json(['message' => 'Patient admitted successfully', 'patient' => $patient]);
     }
-
     public function discharge($id)
     {
         // Cari pasien berdasarkan ID
         $patient = Patient::findOrFail($id);
-
-        // Validasi apakah pasien sudah pulang sebelumnya
-        if (!is_null($patient->discharge_date)) {
-            return response()->json(['message' => 'Patient has already been discharged'], 400);
-        }
-
-        // Tandai tanggal keluar pasien
-        $patient->discharge_date = now();
 
         // Ubah status ketersediaan kamar
         $room = Room::findOrFail($patient->room_id);
         $room->is_available = true; // Tandai kamar tersedia kembali
         $room->save();
 
-        // Simpan data pasien
-        $patient->save();
+        // Hapus data pasien
+        $patient->delete();
 
-        return response()->json(['message' => 'Patient discharged successfully', 'patient' => $patient]);
+        return response()->json(['message' => 'Patient discharged successfully']);
     }
 }
